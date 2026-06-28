@@ -1,1 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fortnite Sprites Collection Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
+    <style>
+        :root {
+            --bg: #06040a;
+            --surface: #0f0a1a;
+            --surface2: #1a1128;
+            --surface3: #251a36;
+            --glass: rgba(15, 10, 26, 0.7);
+            --purple: #a580ff;
+            --purple-light: #c8b0ff;
+            --purple-dark: #6d3fd6;
+            --purple-glow: #b390ff;
+            --text: #ebe3fa;
+            --text-secondary: #bcadcf;
+            --text-muted: #806e9e;
+            --green: #4de087;
+            --gold: #f5b143;
+            --red: #f25757;
+            --rare: #6b9bff;
+            --epic: #c07bff;
+            --legendary: #ff9f55;
+            --mythic: #ff6060;
+            --special: #ff5ea0;
+            --border: #32204e;
+            --card-radius: 20px;
+            --transition: 0.25s cubic-bezier(0.2, 0, 0, 1);
+            --font: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            min-height: 100vh;
+            background-image:
+                radial-gradient(ellipse at 20% 0%, rgba(128, 90, 213, 0.12) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 100%, rgba(192, 100, 255, 0.08) 0%, transparent 50%);
+            background-attachment: fixed;
+            padding-bottom: 40px;
+        }
 
+        /* Glass header */
+        .header {
+            position: sticky; top:0; z-index:100;
+            background: rgba(6,4,10,0.75);
+            backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 16px 24px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+            display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+        }
+        .menu-button {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: var(--text-secondary);
+            width: 44px; height: 44px;
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 1.4rem;
+            transition: all var(--transition); flex-shrink: 0;
+        }
+        .menu-button:hover {
+            background: var(--surface3);
+            color: #fff;
+            border-color: var(--purple);
+            box-shadow: 0 0 16px rgba(165,128,255,0.3);
+        }
+        .header-inner { flex:1; display:flex; flex-direction:column; gap:12px; }
+        .header-top { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+        .logo-title {
+            font-size: clamp(1.5rem, 5vw, 2rem);
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #e0d0ff, #b390ff, #d5bbff);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+            filter: drop-shadow(0 0 18px rgba(165,128,255,0.6));
+        }
+        .sprite-count-badge {
+            font-size: 0.82rem; color: var(--text-secondary);
+            background: var(--glass); padding: 6px 18px;
+            border-radius: 30px; border: 1px solid rgba(255,255,255,0.08);
+            font-weight: 500; backdrop-filter: blur(10px);
+        }
+        .search-container { width:100%; }
+        .search-input {
+            width:100%; padding: 14px 20px;
+            border-radius: 30px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: var(--text); font-family: var(--font);
+            font-size: 0.92rem; outline: none;
+            transition: all var(--transition);
+        }
+        .search-input::placeholder { color: var(--text-muted); }
+        .search-input:focus {
+            border-color: var(--purple);
+            box-shadow: 0 0 0 4px rgba(165,128,255,0.2);
+            background: rgba(255,255,255,0.06);
+        }
+        .progress-bars { display:flex; gap:20px; flex-wrap:wrap; }
+        .progress-group { flex:1; min-width:160px; }
+        .progress-label {
+            display:flex; justify-content:space-between;
+            font-size: 0.78rem; font-weight:600;
+            margin-bottom: 8px; text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .progress-label.owned { color: #a0f5c0; }
+        .progress-label.mastered { color: #ffe09c; }
+        .progress-bar-track {
+            height: 12px; background: rgba(255,255,255,0.05);
+            border-radius: 20px; overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.6);
+        }
+        .progress-bar-fill { height:100%; border-radius:20px; transition:width 0.6s ease; }
+        .progress-bar-fill.owned-fill {
+            background: linear-gradient(90deg, #1d9a4e, #4de087);
+            box-shadow: 0 0 18px rgba(77,224,135,0.5);
+        }
+        .progress-bar-fill.mastered-fill {
+            background: linear-gradient(90deg, #d48a0e, #f5b143);
+            box-shadow: 0 0 18px rgba(245,177,67,0.5);
+        }
+
+        /* Glass filter box */
+        .filter-box {
+            background: var(--glass);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 24px;
+            padding: 14px 20px;
+            margin: 24px auto 12px;
+            max-width: 1400px;
+            display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        .filter-box .btn-filter {
+            background: rgba(255,255,255,0.04);
+            color: var(--text-secondary);
+            border: 1px solid rgba(255,255,255,0.06);
+            transition: all var(--transition);
+            font-weight: 500;
+        }
+        .filter-box .btn-filter.active-filter {
+            background: var(--purple);
+            color: #fff;
+            border-color: var(--purple-light);
+            box-shadow: 0 0 20px rgba(165,128,255,0.6);
+            font-weight: 600;
+        }
+        .btn {
+            font-family: var(--font); font-weight: 500;
+            font-size: 0.78rem; padding: 9px 18px;
+            border-radius: 22px; border: 1px solid transparent;
+            cursor: pointer; transition: all var(--transition);
+            white-space: nowrap; display: flex; align-items: center; gap: 6px;
+            letter-spacing: 0.4px;
+        }
+        .btn-reset {
+            background: transparent; color: var(--text-muted);
+            border-color: rgba(255,255,255,0.1); font-size: 0.75rem;
+            padding: 8px 16px; margin-left: auto;
+        }
+        .btn-reset:hover { color: #fff; border-color: var(--red); background: rgba(242,87,87,0.15); }
+        .share-btn {
+            background: var(--purple); color: #fff;
+            border-color: var(--purple-light); margin-left: 8px;
+            box-shadow: 0 0 14px rgba(165,128,255,0.4);
+        }
+
+        .main-content { max-width:1400px; margin:0 auto; padding:0 16px; }
+        .section-group { margin-bottom: 32px; }
+        .section-header {
+            font-size: 0.88rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1.4px;
+            color: var(--text-muted); margin-bottom: 14px;
+            display: flex; align-items: center; gap: 10px; padding-left: 6px;
+        }
+        .base-rarity-dot { width: 11px; height: 11px; border-radius: 50%; }
+        .rarity-dot-rare{background: var(--rare); box-shadow: 0 0 8px var(--rare);}
+        .rarity-dot-epic{background: var(--epic); box-shadow: 0 0 8px var(--epic);}
+        .rarity-dot-legendary{background: var(--legendary); box-shadow: 0 0 8px var(--legendary);}
+        .rarity-dot-mythic{background: var(--mythic); box-shadow: 0 0 8px var(--mythic);}
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 16px;
+        }
+        @media (min-width: 600px) { .cards-grid { grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 18px; } }
+        @media (min-width: 900px) { .cards-grid { grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: 20px; } }
+
+        .card {
+            background: var(--surface);
+            border-radius: var(--card-radius);
+            border: 1px solid rgba(255,255,255,0.06);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+            display: flex; flex-direction: column;
+            position: relative;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            opacity: 0;
+            background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(165,128,255,0.15), transparent 40%);
+            transition: opacity 0.3s;
+            pointer-events: none; /* ★ FIX: allows clicks to pass through */
+        }
+        .card:hover::before { opacity: 1; }
+        .card:hover {
+            transform: translateY(-6px) scale(1.02);
+            border-color: var(--purple);
+            box-shadow: 0 16px 32px rgba(0,0,0,0.6), 0 0 30px rgba(165,128,255,0.3);
+        }
+        .card.status-owned { border-color: var(--green); }
+        .card.status-owned:hover { box-shadow: 0 16px 32px rgba(0,0,0,0.6), 0 0 30px rgba(77,224,135,0.3); }
+        .card.status-mastered {
+            border-color: var(--gold);
+            animation: masteredGlow 3s infinite;
+        }
+        @keyframes masteredGlow {
+            0%, 100% { box-shadow: 0 0 16px rgba(245,177,67,0.3); }
+            50% { box-shadow: 0 0 28px rgba(245,177,67,0.55); }
+        }
+        .card-top-accent { height: 5px; border-radius: var(--card-radius) var(--card-radius) 0 0; }
+        .accent-rare{background: var(--rare); box-shadow: 0 0 10px var(--rare);}
+        .accent-epic{background: var(--epic); box-shadow: 0 0 10px var(--epic);}
+        .accent-legendary{background: var(--legendary); box-shadow: 0 0 10px var(--legendary);}
+        .accent-mythic{background: var(--mythic); box-shadow: 0 0 10px var(--mythic);}
+        .accent-special{
+            background: linear-gradient(90deg, #ff5ea0, #ff8fc0, #ff5ea0);
+            background-size: 200% 100%;
+            animation: shimmer 3s linear infinite;
+        }
+        @keyframes shimmer { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
+        .card-image-area { padding: 16px 12px 8px; display:flex; justify-content:center; position:relative; }
+        .sprite-img { width: 64px; height: 64px; object-fit:contain; border-radius: 14px; }
+        .sprite-placeholder {
+            width: 64px; height: 64px; border-radius: 14px;
+            background: var(--surface3); border: 1px solid rgba(255,255,255,0.08);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.7rem; color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+        .card-variant-badge {
+            position: absolute; top: 10px; right: 10px;
+            font-size: 0.62rem; font-weight: 700;
+            text-transform: uppercase; padding: 4px 10px;
+            border-radius: 12px; background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.15);
+            color: #fff; letter-spacing: 0.4px;
+        }
+        .variant-gold .card-variant-badge { background: rgba(245,177,67,0.3); color: #ffe09c; border-color: #f5b143; }
+        .variant-gummy .card-variant-badge { background: rgba(255,94,160,0.3); color: #ffb8d4; border-color: #ff5ea0; }
+        .variant-galaxy .card-variant-badge { background: rgba(165,128,255,0.3); color: #dac7ff; border-color: #a580ff; }
+        .card-info { padding: 0 10px 10px; text-align:center; }
+        .card-name { font-weight: 700; font-size: 0.88rem; color: #fff; line-height: 1.3; }
+        .card-rarity-tag {
+            font-size: 0.64rem; font-weight: 700; text-transform: uppercase;
+            padding: 4px 14px; border-radius: 14px; display: inline-block;
+            margin-top: 6px; letter-spacing: 0.6px;
+        }
+        .rarity-tag-rare{background: linear-gradient(135deg,#1e3a8a,#3b82f6); color:#bfdbfe;}
+        .rarity-tag-epic{background: linear-gradient(135deg,#5a1e8a,#9333ea); color:#e9d5ff;}
+        .rarity-tag-legendary{background: linear-gradient(135deg,#9a3d12,#ea5c0c); color:#fed7aa;}
+        .rarity-tag-mythic{background: linear-gradient(135deg,#991b1b,#ef4444); color:#fecaca;}
+        .rarity-tag-special{background: linear-gradient(135deg,#9d174d,#ec4899); color:#fbcfe8;}
+
+        .card-status-bar {
+            margin: 6px 12px 14px; padding: 10px 12px;
+            border-radius: 16px; text-align: center;
+            font-weight: 700; font-size: 0.72rem;
+            letter-spacing: 0.6px; text-transform: uppercase;
+            cursor: pointer; transition: all var(--transition);
+            border: 1px solid transparent;
+        }
+        .status-not-owned { background: rgba(242,87,87,0.2); color: #ffb0b0; border-color: #b91c1c; }
+        .status-owned-bar { background: rgba(77,224,135,0.2); color: #b0f5c0; border-color: #1e8742; }
+        .status-mastered-bar { background: rgba(245,177,67,0.2); color: #ffe5b0; border-color: #c47d0a; }
+
+        /* Modals */
+        .modal-overlay {
+            position:fixed; inset:0; z-index:999;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(12px);
+            display:flex; align-items:center; justify-content:center;
+            opacity:0; pointer-events:none; transition:opacity 0.35s;
+        }
+        .modal-overlay.active { opacity:1; pointer-events:all; }
+        .modal {
+            background: var(--glass);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 28px; padding: 32px 28px;
+            max-width: 500px; width: 94%; max-height: 85vh;
+            overflow-y: auto; position: relative;
+            backdrop-filter: blur(30px);
+            box-shadow: 0 40px 80px rgba(0,0,0,0.7);
+        }
+        .modal-close {
+            position:absolute; top:16px; right:18px;
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+            color: #fff; width: 38px; height: 38px;
+            border-radius: 50%; cursor: pointer;
+            display:flex; align-items:center; justify-content:center;
+            font-size: 1.2rem; transition: all var(--transition);
+        }
+        .modal-close:hover { background: var(--red); border-color: var(--red); }
+        .variant-ability-box {
+            background: linear-gradient(135deg,#9d174d,#ec4899);
+            color: #fbcfe8; border-radius: 14px;
+            padding: 12px 16px; margin-bottom: 12px;
+            font-weight: 700; font-size: 0.82rem;
+            text-transform: uppercase; text-align: center;
+        }
+        .modal-info-item {
+            background: rgba(255,255,255,0.04); border-radius: 14px;
+            padding: 14px; border: 1px solid rgba(255,255,255,0.05);
+        }
+        .modal-info-label { font-size: 0.72rem; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px; font-weight:700; }
+        .modal-info-value { font-size: 0.92rem; font-weight:600; color:#fff; line-height:1.4; }
+
+        .footer {
+            text-align:center; padding:36px 16px 20px;
+            font-weight: 500; font-size: 0.88rem;
+            color: var(--text-muted);
+        }
+        .footer span {
+            background: linear-gradient(135deg, #c084fc, #a78bfa, #8b5cf6);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+            background-clip:text; font-weight: 600;
+        }
+
+        .toast {
+            position:fixed; bottom:32px; left:50%; transform:translateX(-50%);
+            background: var(--glass); color: #fff;
+            padding: 14px 28px; border-radius: 34px;
+            font-weight:600; font-size:0.88rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(20px);
+            z-index:1100; opacity:0; pointer-events:none;
+            transition:opacity 0.35s, transform 0.35s;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+        }
+        .toast.show { opacity:1; transform: translateX(-50%) translateY(-8px); }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <button class="menu-button" id="menuButton">&#9776;</button>
+        <div class="header-inner">
+            <div class="header-top">
+                <h1 class="logo-title">Fortnite Sprites Collection</h1>
+                <span class="sprite-count-badge">61 Sprites</span>
+            </div>
+            <div class="search-container">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search sprite by name..." autocomplete="off">
+            </div>
+            <div class="progress-bars">
+                <div class="progress-group">
+                    <div class="progress-label owned"><span>Owned</span><span id="ownedCount">0/61</span></div>
+                    <div class="progress-bar-track"><div class="progress-bar-fill owned-fill" id="ownedBar" style="width:0%;"></div></div>
+                </div>
+                <div class="progress-group">
+                    <div class="progress-label mastered"><span>Mastered</span><span id="masteredCount">0/61</span></div>
+                    <div class="progress-bar-track"><div class="progress-bar-fill mastered-fill" id="masteredBar" style="width:0%;"></div></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Filter box -->
+    <div class="filter-box">
+        <button class="btn btn-filter active-filter" data-filter="all">All</button>
+        <button class="btn btn-filter" data-filter="not-owned">Not Owned</button>
+        <button class="btn btn-filter" data-filter="owned">Owned</button>
+        <button class="btn btn-filter" data-filter="mastered">Mastered</button>
+        <button class="btn btn-filter" data-filter="rare">Rare</button>
+        <button class="btn btn-filter" data-filter="epic">Epic</button>
+        <button class="btn btn-filter" data-filter="legendary">Legendary</button>
+        <button class="btn btn-filter" data-filter="mythic">Mythic</button>
+        <button class="btn btn-filter" data-filter="special">Special</button>
+        <button class="btn share-btn" id="btnShare">Share Collection</button>
+        <button class="btn btn-reset" id="btnReset">Reset All</button>
+    </div>
+
+    <main class="main-content" id="mainContent"></main>
+
+    <!-- Info Modal -->
+    <div class="modal-overlay" id="infoModalOverlay">
+        <div class="modal" id="infoModal">
+            <button class="modal-close" id="infoModalClose">&times;</button>
+            <div style="text-align:center;" id="modalImageContainer">
+                <img id="modalSpriteImg" src="" style="width:90px;height:90px;object-fit:contain;border-radius:16px;background:var(--surface3);" onerror="this.style.display='none';document.getElementById('modalPlaceholder').style.display='inline-flex';">
+                <div id="modalPlaceholder" style="width:90px;height:90px;border-radius:16px;background:var(--surface3);display:none;align-items:center;justify-content:center;font-size:0.75rem;color:var(--text-muted);margin:0 auto;">SPRITE</div>
+            </div>
+            <h2 class="modal-title" id="modalTitle" style="text-align:center;color:#fff;font-weight:700;margin:16px 0 6px;"></h2>
+            <div class="modal-variant" id="modalVariant" style="text-align:center;font-size:0.88rem;color:var(--purple-light);margin-bottom:12px;"></div>
+            <div class="modal-rarity-badge" style="text-align:center;margin-bottom:14px;" id="modalRarityBadge"></div>
+            <div class="variant-ability-box" id="variantAbilityBox" style="display:none;"></div>
+            <div style="display:grid;gap:12px;">
+                <div class="modal-info-item full-width"><div class="modal-info-label">Base Ability</div><div class="modal-info-value" id="modalAbility"></div></div>
+                <div class="modal-info-item"><div class="modal-info-label">Location</div><div class="modal-info-value" id="modalLocation"></div></div>
+                <div class="modal-info-item"><div class="modal-info-label">Summon Cost</div><div class="modal-info-value" id="modalCost"></div></div>
+                <div class="modal-info-item full-width"><div class="modal-info-label">Chance to Obtain</div><div class="modal-info-value" id="modalChance"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu Modal -->
+    <div class="modal-overlay" id="menuModalOverlay">
+        <div class="modal" id="menuModal">
+            <button class="modal-close" id="menuModalClose">&times;</button>
+            <h2 style="color:#fff;text-align:center;margin-bottom:24px;">Menu</h2>
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:12px;">
+                <li><button id="updateLogsBtn" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px;color:#fff;font-weight:600;font-size:0.92rem;cursor:pointer;transition:0.2s;">Update Logs</button></li>
+                <li><button id="helpBtn" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px;color:#fff;font-weight:600;font-size:0.92rem;cursor:pointer;transition:0.2s;">Help</button></li>
+                <li><a href="https://discord.gg/your-invite" target="_blank" style="display:block;text-align:center;background:#5865F2;border-radius:14px;padding:16px;color:#fff;font-weight:600;text-decoration:none;font-size:0.92rem;">Join Discord</a></li>
+                <li><a href="images/checklist.png" target="_blank" style="display:block;text-align:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px;color:#fff;font-weight:600;text-decoration:none;font-size:0.92rem;">Checklist</a></li>
+                <li><button id="closeMenuBtn" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px;color:#fff;font-weight:600;font-size:0.92rem;cursor:pointer;">Close</button></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Update Logs Modal -->
+    <div class="modal-overlay" id="updateLogsOverlay">
+        <div class="modal" style="max-width:520px;">
+            <button class="modal-close" id="updateLogsClose">&times;</button>
+            <div style="color:var(--text);padding:4px;">
+                <h2 style="text-align:center;color:#fff;margin-bottom:20px;">Update Logs</h2>
+                <div style="font-weight:800;font-size:1.15rem;color:#fff;margin:20px 0 8px;">v2.4.1 — Latest</div>
+                <ul style="list-style:none;padding-left:0;">
+                    <li style="padding:8px 0;border-bottom:1px solid var(--border);font-size:0.88rem;">Fixed click interaction bug – status bars work again</li>
+                </ul>
+                <div style="font-weight:800;font-size:1.15rem;color:#fff;margin:20px 0 8px;">v2.4.0</div>
+                <ul style="list-style:none;padding-left:0;">
+                    <li style="padding:8px 0;border-bottom:1px solid var(--border);font-size:0.88rem;">Luxurious glassmorphism redesign</li>
+                </ul>
+                <button id="backFromLogs" style="width:100%;margin-top:20px;background:var(--purple);border:none;border-radius:14px;padding:14px;color:#fff;font-weight:700;cursor:pointer;">Back to Tracker</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal-overlay" id="helpOverlay">
+        <div class="modal" style="max-width:520px;">
+            <button class="modal-close" id="helpClose">&times;</button>
+            <div style="color:var(--text);padding:4px;">
+                <h2 style="text-align:center;color:#fff;margin-bottom:20px;">Help &amp; Guide</h2>
+                <p style="font-size:0.92rem;margin-bottom:14px;">Welcome to the Fortnite Sprites Collection Tracker!</p>
+                <h3 style="color:var(--purple-light);font-size:0.95rem;">How to Use</h3>
+                <ul style="font-size:0.88rem;padding-left:22px;margin-bottom:16px;">
+                    <li>Click a sprite card to view details.</li>
+                    <li>Click the status bar to cycle: Not Owned → Owned → Mastered.</li>
+                    <li>Use filters or search to find specific sprites.</li>
+                </ul>
+                <h3 style="color:var(--purple-light);font-size:0.95rem;">Checklist</h3>
+                <p style="font-size:0.88rem;margin-bottom:16px;">Tap "Checklist" in the menu to open a printable PNG checklist for manual tracking.</p>
+                <h3 style="color:var(--purple-light);font-size:0.95rem;">Feedback</h3>
+                <p style="font-size:0.88rem;">Contact <strong style="color:#c084fc;">@vendetta_6584</strong> on Discord.</p>
+                <button id="closeHelpBtn" style="width:100%;margin-top:20px;background:var(--purple);border:none;border-radius:14px;padding:14px;color:#fff;font-weight:700;cursor:pointer;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <div class="footer"><span>Designed by @vendetta_6584</span></div>
+
+    <script>
+        (function() {
+            const baseSprites = [
+                { id: 'water', name: 'Water', rarity: 'rare', ability: 'Replenishes shields for you and nearby teammates while in water.', location: 'Near rivers, lakes & coast', summonCost: '100 Dust', chance: '13.79%' },
+                { id: 'earth', name: 'Earth', rarity: 'rare', ability: 'Chance to find additional rare items when opening chests.', location: 'Forests', summonCost: '100 Dust', chance: '13.79%' },
+                { id: 'fire', name: 'Fire', rarity: 'rare', ability: 'Creates a fiery burst after dealing enough damage to an enemy.', location: 'Urban POIs', summonCost: '100 Dust', chance: '13.79%' },
+                { id: 'fish', name: 'Fishy', rarity: 'rare', ability: 'Swim speed and movement-focused bonuses.', location: 'Water & random chests', summonCost: '100 Dust', chance: '13.79%' },
+                { id: 'duck', name: 'Duck', rarity: 'epic', ability: 'Restores shields while emoting or using Jam Tracks.', location: 'Sprite Chests', summonCost: '3,000 Dust', chance: '5.74%' },
+                { id: 'ghost', name: 'Ghost', rarity: 'epic', ability: 'Grants temporary cloak/invisibility when reloading.', location: 'Night-time spawns', summonCost: '3,000 Dust', chance: '5.74%' },
+                { id: 'demon', name: 'Demon', rarity: 'epic', ability: 'Grants Siphon (health and shield gain) when eliminating an opponent.', location: 'Sprite Chests', summonCost: '3,000 Dust', chance: '5.74%' },
+                { id: 'king', name: 'King', rarity: 'epic', ability: 'Increases pickaxe damage.', location: 'Sprite Chests', summonCost: '3,000 Dust', chance: '5.74%' },
+                { id: 'aura', name: 'Aura', rarity: 'epic', ability: 'Combat-focused bonus that enhances offensive engagements.', location: 'Mountain/high areas', summonCost: '3,000 Dust', chance: '5.74%' },
+                { id: 'striker', name: 'Striker', rarity: 'epic', ability: 'Mobility-focused bonuses related to movement and traversal.', location: 'Unlock by scoring a goal at the Soccer Pitch, then collect normally', summonCost: '3,000 Dust', chance: '5.74%' },
+                { id: 'dream', name: 'Dream', rarity: 'legendary', ability: 'Grants a random item every time it levels up. At max level, drops Legendary loot, auto-extracts, and resets.', location: 'Rare Sprite Chests', summonCost: '5,000 Dust', chance: '2.63%' },
+                { id: 'punk', name: 'Punk', rarity: 'legendary', ability: 'No reliable effect before Level 5. At Level 5 can occasionally grant unlimited ammo.', location: 'Rare Sprite Chests', summonCost: '5,000 Dust', chance: '2.63%' },
+                { id: 'boss', name: 'Boss', rarity: 'legendary', ability: 'Increases survivability through health/shield-related bonuses.', location: 'Defeat any Boss', summonCost: 'Free (boss drop)', chance: '2.63%' },
+                { id: 'grim', name: 'Grim Reaper', rarity: 'mythic', ability: 'Marks/reveals enemies, providing tracking and vision utility.', location: 'Extremely rare Sprite Chest drop', summonCost: '7,500 Dust', chance: '0.000098%' },
+                { id: 'zeropoint', name: 'Zero Point', rarity: 'mythic', ability: 'Spawns a Shield Bubble Jr. whenever you use a healing item on yourself.', location: 'Ultra-rare Sprite Chests', summonCost: '7,500 Dust', chance: '~0.03%' },
+                { id: 'burntpeanut', name: 'Burnt Peanut', rarity: 'mythic', ability: 'Small chance for additional loot from eliminations, including Mythic loot.', location: 'Relic Chests (~1.5%)', summonCost: '7,500 Dust', chance: 'Relic Chest only' }
+            ];
+
+            const goldOverrides = {
+                water: { chance: '0.17%', cost: '4,000 Dust', location: 'Rivers, beaches' },
+                earth: { chance: '0.70%', cost: '4,000 Dust', location: 'Forest / wooded areas' },
+                fire: { chance: '0.68%', cost: '4,000 Dust', location: 'Hot / urban zones' },
+                fish: { chance: '0.17%', cost: '3,000–4,000 Dust', location: 'Water areas' },
+                duck: { chance: '0.07%', cost: '3,000–? Dust', location: 'General map spawn' },
+                ghost: { chance: '0.07%', cost: '3,000–? Dust', location: 'General spawn zones' },
+                demon: { chance: '0.07%', cost: '3,000–? Dust', location: 'General spawn zones' },
+                king: { chance: '0.07%', cost: '6,000 Dust', location: 'Sprite chests / rare chests / drops' },
+                aura: { chance: '0.07%', cost: '3,000 Dust', location: 'Combat-heavy zones' },
+                striker: { chance: '0.07%', cost: '3,000 Dust', location: 'POIs / chests' },
+                dream: { chance: '0.03%', cost: '5,000 Dust', location: 'Random crate spawn' },
+                punk: { chance: '0.02%', cost: '10,000 Dust', location: 'Sprite chests only' },
+                boss: { chance: '0.03%', cost: '—', location: 'Boss drops / chests' },
+                zeropoint: { chance: '0.0000012%', cost: '7,500 Dust', location: 'Sprite chests only' },
+                grim: { chance: '0.0000012%', cost: '7,500 Dust', location: 'Sprite Chests (ultra rare global pool)' }
+            };
+            const gummyOverrides = {
+                water: { chance: '0.28%', cost: '3,000–4,000 Dust', location: 'Rivers, beaches' },
+                earth: { chance: '4.16%', cost: '4,000 Dust', location: 'Forests, wooded areas' },
+                fire: { chance: '4.16%', cost: '4,000 Dust', location: 'Urban / POIs' },
+                fish: { chance: '0.08%', cost: '3,000–4,000 Dust', location: 'Water zones' },
+                duck: { chance: '0.04%', cost: '3,000–6,000 Dust', location: 'Vault / POIs' },
+                ghost: { chance: '0.04%', cost: '6,000 Dust', location: 'Nighttime spawns' },
+                demon: { chance: '0.04%', cost: '3,000–6,000 Dust', location: 'Sprite + rare chests' },
+                king: { chance: '0.04%', cost: '6,000 Dust', location: 'Sprite / rare chests' },
+                aura: { chance: '0.04%', cost: '3,000 Dust', location: 'Combat zones' },
+                striker: { chance: '0.04%', cost: '3,000 Dust', location: 'POIs' },
+                dream: { chance: '0.02%', cost: '5,000–6,000 Dust', location: 'Vault Sprite chests' },
+                punk: { chance: '0.01%', cost: '10,000 Dust', location: 'Vault Sprite chests' },
+                boss: { chance: '0.02%', cost: '—', location: 'Boss / chest drops' },
+                zeropoint: { chance: '0.0000006%', cost: '7,500–15,000 Dust', location: 'Sprite chests' },
+                grim: { chance: '0.0000006%', cost: '7,500 Dust', location: 'Sprite chests only' }
+            };
+            const galaxyOverrides = {
+                water: { chance: '0.28%', cost: '4,000 Dust', location: 'Rivers, lakes, beaches' },
+                earth: { chance: '0.28%', cost: '4,000 Dust', location: 'Forest / wooded areas' },
+                fire: { chance: '0.27%', cost: '4,000 Dust', location: 'Urban / POIs' },
+                duck: { chance: '0.02%', cost: '3,000–6,000 Dust', location: 'Vault areas / POIs' },
+                ghost: { chance: '0.02%', cost: '6,000 Dust', location: 'Night cycle spawns' },
+                dream: { chance: '0.01%', cost: '5,000–6,000 Dust', location: 'Rare chest pool' },
+                demon: { chance: '0%', cost: '—', location: 'Not currently obtainable in Galaxy form' },
+                punk: { chance: '0%', cost: '—', location: 'Not currently obtainable in Galaxy form' },
+                king: { chance: '0.02%', cost: '6,000 Dust', location: 'Sprite / rare chests' },
+                boss: { chance: '0.01%', cost: '—', location: 'Boss / chest drops' },
+                zeropoint: { chance: '0.0000014%', cost: '15,000 Dust', location: 'Sprite Chests only' },
+                fish: { chance: '0.06%', cost: '3,000–4,000 Dust', location: 'Water zones' },
+                striker: { chance: '0.02%', cost: '3,000 Dust', location: 'POIs' },
+                aura: { chance: '0.02%', cost: '3,000 Dust', location: 'Combat zones' },
+                grim: { chance: '0.0000014%', cost: '7,500–15,000 Dust', location: 'Sprite Chests only' }
+            };
+
+            const variantsAll = ['normal', 'gold', 'gummy', 'galaxy'];
+            const variantPerks = {
+                gold: 'Gain 3x bonus XP from eliminations',
+                gummy: 'Gain 20% more Sprite Dust upon Extraction',
+                galaxy: 'Gain 30% more Ammunition when looting'
+            };
+
+            function parseDustCost(costStr) {
+                if (!costStr || costStr === '—' || costStr.toLowerCase().includes('free')) return null;
+                const num = costStr.replace(/[^0-9.,]/g, '').replace(/,/g, '');
+                return isNaN(parseFloat(num)) ? null : parseFloat(num);
+            }
+            function multiplyChance(chanceStr, factor) {
+                if (!chanceStr) return '?';
+                const cleaned = chanceStr.replace(/[~%]/g, '').trim();
+                const num = parseFloat(cleaned);
+                if (isNaN(num)) return chanceStr;
+                const result = num * factor;
+                return result < 0.0001 ? '<0.0001%' : result.toFixed(4) + '%';
+            }
+
+            let allSprites = [];
+            let spriteIdCounter = 0;
+            baseSprites.forEach(base => {
+                const isBurntPeanut = base.id === 'burntpeanut';
+                const applicable = isBurntPeanut ? ['normal'] : variantsAll;
+                const baseCostNum = parseDustCost(base.summonCost);
+                applicable.forEach(variant => {
+                    const isSpecial = variant !== 'normal';
+                    const rarity = isSpecial ? 'special' : base.rarity;
+                    let summonCost = base.summonCost, chance = base.chance, location = base.location;
+                    if (variant === 'gold' && goldOverrides[base.id]) {
+                        const g = goldOverrides[base.id]; chance = g.chance; summonCost = g.cost === '—' ? 'Free' : g.cost; location = g.location;
+                    } else if (variant === 'gummy' && gummyOverrides[base.id]) {
+                        const g = gummyOverrides[base.id]; chance = g.chance; summonCost = g.cost === '—' ? 'Free' : g.cost; location = g.location;
+                    } else if (variant === 'galaxy' && galaxyOverrides[base.id]) {
+                        const g = galaxyOverrides[base.id]; chance = g.chance; summonCost = g.cost === '—' ? 'Free' : g.cost; location = g.location;
+                    } else if (isSpecial) {
+                        if (baseCostNum !== null) summonCost = Math.round(baseCostNum * 1.5).toLocaleString() + ' Dust';
+                        chance = multiplyChance(base.chance, 0.35);
+                    }
+                    allSprites.push({
+                        globalId: spriteIdCounter,
+                        baseId: base.id,
+                        baseName: base.name,
+                        variant,
+                        rarity,
+                        ability: base.ability,
+                        location,
+                        summonCost,
+                        chance,
+                        isSpecial,
+                        variantPerk: isSpecial ? variantPerks[variant] : null
+                    });
+                    spriteIdCounter++;
+                });
+            });
+
+            const STORAGE_KEY = 'fortnite_sprite_tracker_v2.4.1';
+            let spriteStatuses = {};
+            function loadState() {
+                try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) spriteStatuses = JSON.parse(raw); } catch(e) {}
+                allSprites.forEach(s => { if (!(s.globalId in spriteStatuses)) spriteStatuses[s.globalId] = 0; });
+            }
+            function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(spriteStatuses)); } catch(e) {} }
+            function getStatus(id) { return spriteStatuses[id] || 0; }
+            function cycleStatus(id) {
+                const prev = getStatus(id);
+                const next = (prev + 1) % 3;
+                spriteStatuses[id] = next;
+                saveState();
+                playClickSound();
+                if (next === 2) {
+                    confetti({ particleCount: 80, spread: 60, origin: { y: 0.5 } });
+                    if (countMastered() === allSprites.length) {
+                        confetti({ particleCount: 300, spread: 100, origin: { y: 0.4, x: 0.5 } });
+                        playMilestoneSound();
+                    }
+                }
+                if (countOwned() === allSprites.length) {
+                    confetti({ particleCount: 200, spread: 80, origin: { y: 0.5 } });
+                    playMilestoneSound();
+                }
+                return next;
+            }
+            function countOwned() { return allSprites.filter(s => getStatus(s.globalId) >= 1).length; }
+            function countMastered() { return allSprites.filter(s => getStatus(s.globalId) >= 2).length; }
+
+            const mainContent = document.getElementById('mainContent');
+            let currentFilter = 'all', searchTerm = '';
+
+            function getRarityClass(r) { return { rare:'rare', epic:'epic', legendary:'legendary', mythic:'mythic', special:'special' }[r]; }
+            function getRarityTagClass(r) { return 'rarity-tag-' + getRarityClass(r); }
+            function getRarityDotClass(r) { return 'rarity-dot-' + getRarityClass(r); }
+            function getRarityLabel(r) { return { rare:'Rare', epic:'Epic', legendary:'Legendary', mythic:'Mythic', special:'Special' }[r]; }
+            function getAccentClass(r) { return 'accent-' + getRarityClass(r); }
+            function getStatusBarClass(s) { return s===0 ? 'status-not-owned' : s===1 ? 'status-owned-bar' : 'status-mastered-bar'; }
+            function getStatusBarText(s) { return s===0 ? 'Not Owned' : s===1 ? 'Owned' : 'Mastered'; }
+            function getCardStatusClass(s) { return s===1 ? 'status-owned' : s===2 ? 'status-mastered' : ''; }
+            function getVariantClass(v) { return { gold:'variant-gold', gummy:'variant-gummy', galaxy:'variant-galaxy' }[v] || ''; }
+            function getVariantLabel(v) { return { normal:'Normal', gold:'Gold', gummy:'Gummy', galaxy:'Galaxy' }[v]; }
+
+            function spriteMatchesFilter(sprite, filter) {
+                const status = getStatus(sprite.globalId);
+                if (filter === 'all') return true;
+                if (filter === 'not-owned') return status === 0;
+                if (filter === 'owned') return status === 1;
+                if (filter === 'mastered') return status === 2;
+                return sprite.rarity === filter;
+            }
+            function spriteMatchesSearch(sprite) {
+                if (!searchTerm.trim()) return true;
+                return sprite.baseName.toLowerCase().includes(searchTerm.toLowerCase());
+            }
+
+            function getSpriteImageUrl(baseId, variant) {
+                const variantSuffix = (variant !== 'normal') ? '_' + variant : '';
+                return 'images/' + baseId + variantSuffix + '.png';
+            }
+
+            function renderAll() {
+                mainContent.innerHTML = '';
+                const grouped = {};
+                allSprites.forEach(s => { if (!grouped[s.baseId]) grouped[s.baseId] = []; grouped[s.baseId].push(s); });
+                let anyVisible = false;
+                Object.keys(grouped).forEach(baseId => {
+                    const group = grouped[baseId];
+                    const baseSprite = baseSprites.find(b => b.id === baseId);
+                    if (!baseSprite) return;
+                    const visible = group.filter(s => spriteMatchesFilter(s, currentFilter) && spriteMatchesSearch(s));
+                    if (visible.length === 0) return;
+                    anyVisible = true;
+                    const section = document.createElement('div'); section.className = 'section-group';
+                    section.innerHTML = `<div class="section-header"><span>${baseSprite.name}</span><span class="base-rarity-dot ${getRarityDotClass(baseSprite.rarity)}"></span><span style="font-size:0.78rem;color:var(--text-muted);">${getRarityLabel(baseSprite.rarity)}</span></div>`;
+                    const grid = document.createElement('div'); grid.className = 'cards-grid';
+                    visible.forEach(sprite => {
+                        const status = getStatus(sprite.globalId);
+                        const imgUrl = getSpriteImageUrl(sprite.baseId, sprite.variant);
+                        const card = document.createElement('div');
+                        card.className = `card ${getCardStatusClass(status)} ${getVariantClass(sprite.variant)}`;
+                        card.innerHTML = `
+                  <div class="card-top-accent ${getAccentClass(sprite.rarity)}"></div>
+                  <div class="card-image-area">
+                    <img src="${imgUrl}" class="sprite-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" alt="${sprite.baseName}">
+                    <div class="sprite-placeholder" style="display:none;">SPRITE</div>
+                    ${sprite.variant !== 'normal' ? `<span class="card-variant-badge">${getVariantLabel(sprite.variant)}</span>` : ''}
+                  </div>
+                  <div class="card-info"><div class="card-name">${sprite.baseName}${sprite.variant!=='normal' ? ' <small style="color:var(--text-muted);">· '+getVariantLabel(sprite.variant)+'</small>' : ''}</div><span class="card-rarity-tag ${getRarityTagClass(sprite.rarity)}">${getRarityLabel(sprite.rarity)}</span></div>
+                  <div class="card-status-bar ${getStatusBarClass(status)}" data-global-id="${sprite.globalId}">${getStatusBarText(status)}</div>`;
+                        card.addEventListener('click', function(e) { if (e.target.classList.contains('card-status-bar')) return; openInfoModal(sprite); });
+                        card.querySelector('.card-status-bar').addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            const newStatus = cycleStatus(sprite.globalId);
+                            updateCardUI(card, newStatus);
+                            updateProgressBars();
+                            showToast(`${sprite.baseName} (${getVariantLabel(sprite.variant)}) → ${getStatusBarText(newStatus)}`);
+                        });
+                        grid.appendChild(card);
+                    });
+                    section.appendChild(grid);
+                    mainContent.appendChild(section);
+                });
+                if (!anyVisible) mainContent.innerHTML = '<div style="text-align:center;padding:50px;color:var(--text-muted);">No sprites found.</div>';
+                updateProgressBars();
+            }
+            function updateCardUI(card, newStatus) {
+                const bar = card.querySelector('.card-status-bar');
+                bar.className = 'card-status-bar ' + getStatusBarClass(newStatus);
+                bar.textContent = getStatusBarText(newStatus);
+                card.classList.remove('status-owned','status-mastered');
+                if (newStatus === 1) card.classList.add('status-owned');
+                if (newStatus === 2) card.classList.add('status-mastered');
+            }
+            function updateProgressBars() {
+                const owned = countOwned(), mastered = countMastered(), total = allSprites.length;
+                document.getElementById('ownedCount').textContent = `${owned}/${total}`;
+                document.getElementById('masteredCount').textContent = `${mastered}/${total}`;
+                document.getElementById('ownedBar').style.width = (owned/total*100)+'%';
+                document.getElementById('masteredBar').style.width = (mastered/total*100)+'%';
+            }
+
+            const infoModalOverlay = document.getElementById('infoModalOverlay');
+            function openInfoModal(sprite) {
+                document.getElementById('modalTitle').textContent = sprite.baseName;
+                document.getElementById('modalVariant').textContent = 'Variant: ' + getVariantLabel(sprite.variant);
+                document.getElementById('modalRarityBadge').innerHTML = `<span class="card-rarity-tag ${getRarityTagClass(sprite.rarity)}">${getRarityLabel(sprite.rarity)}</span>`;
+                document.getElementById('modalAbility').textContent = sprite.ability;
+                document.getElementById('modalLocation').textContent = sprite.location;
+                document.getElementById('modalCost').textContent = sprite.summonCost;
+                document.getElementById('modalChance').textContent = sprite.chance;
+                const variantBox = document.getElementById('variantAbilityBox');
+                if (sprite.isSpecial && sprite.variantPerk) { variantBox.style.display='block'; variantBox.textContent = sprite.variantPerk; }
+                else variantBox.style.display='none';
+
+                const imgUrl = getSpriteImageUrl(sprite.baseId, sprite.variant);
+                const modalImg = document.getElementById('modalSpriteImg');
+                const modalPlaceholder = document.getElementById('modalPlaceholder');
+                modalImg.src = imgUrl;
+                modalImg.style.display = 'inline-block';
+                modalPlaceholder.style.display = 'none';
+
+                infoModalOverlay.classList.add('active'); document.body.style.overflow='hidden';
+            }
+            document.getElementById('infoModalClose').addEventListener('click', ()=>{
+                infoModalOverlay.classList.remove('active'); document.body.style.overflow='';
+            });
+
+            // Menu
+            document.getElementById('menuButton').addEventListener('click', ()=> document.getElementById('menuModalOverlay').classList.add('active'));
+            document.getElementById('menuModalClose').addEventListener('click', ()=> document.getElementById('menuModalOverlay').classList.remove('active'));
+            document.getElementById('closeMenuBtn').addEventListener('click', ()=> document.getElementById('menuModalOverlay').classList.remove('active'));
+            document.getElementById('updateLogsBtn').addEventListener('click', ()=>{
+                document.getElementById('menuModalOverlay').classList.remove('active');
+                document.getElementById('updateLogsOverlay').classList.add('active');
+            });
+            document.getElementById('updateLogsClose').addEventListener('click', ()=> document.getElementById('updateLogsOverlay').classList.remove('active'));
+            document.getElementById('backFromLogs').addEventListener('click', ()=> document.getElementById('updateLogsOverlay').classList.remove('active'));
+
+            // Help
+            document.getElementById('helpBtn').addEventListener('click', ()=>{
+                document.getElementById('menuModalOverlay').classList.remove('active');
+                document.getElementById('helpOverlay').classList.add('active');
+            });
+            document.getElementById('helpClose').addEventListener('click', ()=> document.getElementById('helpOverlay').classList.remove('active'));
+            document.getElementById('closeHelpBtn').addEventListener('click', ()=> document.getElementById('helpOverlay').classList.remove('active'));
+
+            // Share
+            document.getElementById('btnShare').addEventListener('click', ()=>{
+                const encoded = btoa(JSON.stringify(spriteStatuses));
+                const url = window.location.origin + window.location.pathname + '#data=' + encoded;
+                navigator.clipboard.writeText(url).then(()=> showToast('Share link copied!'));
+            });
+            function loadFromHash() {
+                const hash = window.location.hash;
+                if (hash.startsWith('#data=')) {
+                    try {
+                        const data = JSON.parse(atob(hash.replace('#data=','')));
+                        if (confirm('Load shared collection? (Your current progress will be overwritten)')) {
+                            spriteStatuses = data;
+                            saveState();
+                            renderAll();
+                        }
+                    } catch(e) {}
+                }
+            }
+
+            // Search & filters
+            document.getElementById('searchInput').addEventListener('input', function(){ searchTerm = this.value; renderAll(); });
+            document.querySelectorAll('.btn-filter').forEach(btn => {
+                btn.addEventListener('click', function(){
+                    document.querySelectorAll('.btn-filter').forEach(b=>b.classList.remove('active-filter'));
+                    this.classList.add('active-filter'); currentFilter = this.dataset.filter; renderAll();
+                });
+            });
+            document.getElementById('btnReset').addEventListener('click', ()=>{
+                if (confirm('Reset all progress?')) { allSprites.forEach(s=>spriteStatuses[s.globalId]=0); saveState(); renderAll(); }
+            });
+
+            // Sound effects
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            function playClickSound() {
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.frequency.value = 600; osc.type = 'sine';
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+                osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.1);
+            }
+            function playMilestoneSound() {
+                const notes = [523, 659, 784, 1047];
+                notes.forEach((freq, i) => {
+                    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.frequency.value = freq; osc.type = 'triangle';
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime + i * 0.12);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.12 + 0.2);
+                    osc.start(audioCtx.currentTime + i * 0.12); osc.stop(audioCtx.currentTime + i * 0.12 + 0.2);
+                });
+            }
+
+            // Toast
+            const toast = document.getElementById('toast');
+            function showToast(msg) {
+                toast.textContent = msg; toast.classList.add('show');
+                setTimeout(()=> toast.classList.remove('show'), 2000);
+            }
+
+            loadState();
+            renderAll();
+            loadFromHash();
+            document.querySelector('.btn-filter[data-filter="all"]').classList.add('active-filter');
+        })();
+    </script>
+</body>
+</html>
